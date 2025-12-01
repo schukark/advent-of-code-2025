@@ -22,8 +22,14 @@ pub fn solve() -> impl Display {
     format!("Part 1: {}, Part 2: {}", solve_1(), solve_2())
 }
 
+#[cfg(feature = "debug")]
+const FILE_NAME: &str = "inputs/day01-example.txt";
+
+#[cfg(not(feature = "debug"))]
+const FILE_NAME: &str = "inputs/day01.txt";
+
 fn read_input_file() -> Vec<(Direction, i32)> {
-    let file_contents = fs::read_to_string("inputs/day01.txt").expect("No such file");
+    let file_contents = fs::read_to_string(FILE_NAME).expect("No such file");
     let mut result_vec = Vec::new();
 
     for line in file_contents.lines() {
@@ -57,5 +63,23 @@ fn solve_1() -> i32 {
 }
 
 fn solve_2() -> i32 {
-    todo!()
+    let input = read_input_file();
+
+    let mut dial: i32 = 50;
+    let mut result = 0;
+
+    for (direction, count) in input {
+        for _ in 0..count {
+            dial = match direction {
+                Direction::Left => (dial - 1).rem_euclid(100),
+                Direction::Right => (dial + 1).rem_euclid(100),
+            };
+
+            if dial == 0 {
+                result += 1;
+            }
+        }
+    }
+
+    result
 }
