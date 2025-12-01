@@ -1,4 +1,4 @@
-use std::env;
+use std::{env, time::Instant};
 
 pub mod day01;
 
@@ -13,8 +13,31 @@ fn main() {
         }
     };
 
+    let _timer = Timer::new();
+
     match num {
         1 => println!("{}", day01::solve()),
         _ => eprintln!("{num} is not a valid problem number"),
+    }
+}
+
+struct Timer {
+    start_timer: Instant,
+}
+
+impl Timer {
+    pub fn new() -> Self {
+        Timer {
+            start_timer: Instant::now(),
+        }
+    }
+}
+
+impl Drop for Timer {
+    fn drop(&mut self) {
+        println!(
+            "Timer measured: {}ms",
+            (Instant::now() - self.start_timer).as_millis()
+        );
     }
 }
