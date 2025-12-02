@@ -1,6 +1,7 @@
 use std::{env, time::Instant};
 
 pub mod day01;
+pub mod day02;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -17,6 +18,7 @@ fn main() {
 
     match num {
         1 => println!("{}", day01::solve()),
+        2 => println!("{}", day02::solve()),
         _ => eprintln!("{num} is not a valid problem number"),
     }
 }
