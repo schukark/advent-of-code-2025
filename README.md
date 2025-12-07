@@ -8,3 +8,4 @@
 4. Simple bruteforce, nothing clever here (6ms)
 5. Single-pass algorithm with pre-sorting/range-compactization, then 2 pointers (8ms)
 6. Input manipulation, not very Rusty code (no inherent invariants for Input type held), good enough for AoC (3ms)
+7. First part is easy simulation of the process, 2nd part is 2D-dp, dp\[`i`\]\[`j`\] = number of timelines that could get here from the start (0ms)
