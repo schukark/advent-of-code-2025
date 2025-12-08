@@ -7,6 +7,7 @@ pub mod day04;
 pub mod day05;
 pub mod day06;
 pub mod day07;
+pub mod day08;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -29,6 +30,7 @@ fn main() {
         5 => println!("{}", day05::solve()),
         6 => println!("{}", day06::solve()),
         7 => println!("{}", day07::solve()),
+        8 => println!("{}", day08::solve()),
         _ => eprintln!("{num} is not a valid problem number"),
     }
 }
