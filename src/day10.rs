@@ -1,9 +1,10 @@
 use std::{collections::VecDeque, fmt::Display, fs};
 
 use rayon::prelude::*;
+use simple_tqdm::ParTqdm;
 
 use rustc_hash::FxHashSet;
-use simple_tqdm::ParTqdm;
+use z3::{Solver, ast::Int};
 
 pub fn solve() -> impl Display {
     format!("Part 1: {}, Part 2: {}", solve_1(), solve_2())
@@ -66,53 +67,7 @@ fn read_input_file() -> Vec<Machine> {
         .collect()
 }
 
-trait Transition {
-    fn transition(new_state: &mut usize);
-    fn should_stop(machine: &Machine, cur_state: &[usize]) -> Decision;
-}
-
-struct LightCounter {}
-struct JoltageCounter {}
-
-enum Decision {
-    Continue,
-    ReturnAnswer,
-    Skip,
-}
-
-impl Transition for LightCounter {
-    fn transition(new_state: &mut usize) {
-        *new_state ^= 1;
-    }
-
-    fn should_stop(_machine: &Machine, _cur_state: &[usize]) -> Decision {
-        Decision::Continue
-    }
-}
-
-impl Transition for JoltageCounter {
-    fn transition(new_state: &mut usize) {
-        *new_state += 1;
-    }
-
-    fn should_stop(machine: &Machine, cur_state: &[usize]) -> Decision {
-        let goal_state = &machine.joltage;
-        if goal_state == cur_state {
-            return Decision::ReturnAnswer;
-        }
-
-        match goal_state
-            .iter()
-            .zip(cur_state.iter())
-            .any(|(goal_value, cur_value)| goal_value < cur_value)
-        {
-            true => Decision::Skip,
-            false => Decision::Continue,
-        }
-    }
-}
-
-fn find_smallest_press_count<T: Transition>(machine: &Machine) -> u16 {
+fn find_smallest_press_count(machine: &Machine) -> u16 {
     let mut deque = VecDeque::new();
 
     deque.push_back((0, vec![0; machine.state.len()]));
@@ -120,17 +75,15 @@ fn find_smallest_press_count<T: Transition>(machine: &Machine) -> u16 {
     visited.insert(vec![0; machine.state.len()]);
 
     while let Some((top_dist, top)) = deque.pop_front() {
-        match T::should_stop(&machine, &top) {
-            Decision::Continue => {}
-            Decision::ReturnAnswer => return top_dist,
-            Decision::Skip => continue,
-        };
+        if top == machine.state {
+            return top_dist;
+        }
 
         for transition in &machine.transitions {
             let mut new_state = top.clone();
 
             for light in transition {
-                T::transition(&mut new_state[*light]);
+                new_state[*light] ^= 1;
             }
 
             if visited.contains(&new_state) {
@@ -150,16 +103,52 @@ fn solve_1() -> usize {
 
     input
         .iter()
-        .map(|machine| find_smallest_press_count::<LightCounter>(&machine) as usize)
+        .map(|machine| find_smallest_press_count(&machine) as usize)
         .sum()
 }
 
-fn solve_2() -> usize {
+fn solve_z3(machine: &Machine) -> u64 {
+    let solver = Solver::new();
+
+    let mut coefficients = Vec::with_capacity(machine.transitions.len());
+
+    for i in 0..machine.transitions.len() {
+        coefficients.push(Int::fresh_const(&i.to_string()));
+        solver.assert(coefficients[i].ge(0));
+    }
+
+    for i in 0..machine.joltage.len() {
+        let coefs: Vec<_> = machine
+            .transitions
+            .iter()
+            .enumerate()
+            .filter(|(_idx, transition)| transition.contains(&i))
+            .map(|(idx, _transition)| &coefficients[idx])
+            .cloned()
+            .collect();
+
+        let mut expr = coefs[0].clone();
+
+        for coef in coefs.iter().skip(1) {
+            expr = &expr + coef;
+        }
+
+        solver.assert(expr.eq(machine.joltage[i] as u64));
+    }
+
+    solver
+        .solutions(coefficients, false)
+        .map(|solution| solution.iter().map(Int::as_u64).map(Option::unwrap).sum())
+        .min()
+        .unwrap()
+}
+
+fn solve_2() -> u64 {
     let input = read_input_file();
 
     input
-        .into_par_iter()
+        .par_iter()
         .tqdm()
-        .map(|machine| find_smallest_press_count::<JoltageCounter>(&machine) as usize)
+        .map(|machine| solve_z3(machine))
         .sum()
 }
