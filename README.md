@@ -11,5 +11,5 @@
 7. First part is easy simulation of the process, 2nd part is 2D-dp, dp\[`i`\]\[`j`\] = number of timelines that could get here from the start (0ms)
 8. DSU for near O(1) performance, nothing fancy with distances, O(n^2). (36 ms)
 9. First path is O(n^2) bruteforce, second part is ? (? ms)
-10. First path is BFS, second part is ? (? ms)
+10. First path is BFS, second part is solveable using z3 (37943 ms)
 11. Simple path-counting via topsort for both paths (0 ms)
