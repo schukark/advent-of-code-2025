@@ -27,6 +27,7 @@ fn find_start(grid: &[Vec<char>]) -> Option<(usize, usize)> {
     None
 }
 
+#[allow(dead_code)]
 fn print_grid(grid: &[Vec<char>]) {
     for line in grid {
         for elem in line {
