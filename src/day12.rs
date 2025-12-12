@@ -1,5 +1,5 @@
 use rayon::prelude::*;
-use std::{fmt::Display, fs};
+use std::{fmt::Display, fs, time::Instant};
 
 pub fn solve() -> impl Display {
     format!("Part 1: {}, Part 2: {}", solve_1(), solve_2())
@@ -14,6 +14,7 @@ const FILE_NAME: &str = "inputs/day12.txt";
 #[derive(Debug)]
 struct Shape {
     pixels: Vec<Vec<bool>>,
+    area: usize,
 }
 
 #[derive(Debug)]
@@ -63,20 +64,24 @@ impl Shape {
 fn read_input_file() -> (Vec<Shape>, Vec<Field>) {
     let contents = fs::read_to_string(FILE_NAME).expect("No such file");
 
-    let mut cur_shape = vec![];
+    let mut cur_shape: Vec<Vec<bool>> = vec![];
     let mut shapes = vec![];
     let mut fields = vec![];
+    let mut area = 0;
 
     for line in contents.lines() {
         if line.ends_with(":") {
             continue;
         } else if line.starts_with("#") || line.starts_with(".") {
             cur_shape.push(line.chars().map(|c| c as u8 == b'#').collect());
+            area += cur_shape.last().unwrap().iter().filter(|&&x| x).count();
         } else if line.is_empty() {
             shapes.push(Shape {
                 pixels: cur_shape.clone(),
+                area,
             });
             cur_shape = vec![];
+            area = 0;
         } else if line.contains("x") {
             let (dims, shape_reqs) = line.split_once(":").expect("Invalid box format");
             let (width, height) = dims.split_once("x").expect("Invalid dims format");
@@ -138,15 +143,22 @@ fn fit_present(
     }
 }
 
-fn can_fit_all_presents(shapes: &[Shape], cur_field: &[Vec<bool>], shape_reqs: &[usize]) -> bool {
-    dbg!(cur_field, shape_reqs);
-
+fn can_fit_all_presents(
+    shapes: &[Shape],
+    cur_field: &[Vec<bool>],
+    shape_reqs: &[usize],
+    area_left: usize,
+) -> bool {
     if shape_reqs.iter().all(|&x| x == 0) {
         return true;
     }
 
     for (idx, &shapes_left) in shape_reqs.iter().enumerate() {
         if shapes_left == 0 {
+            continue;
+        }
+
+        if area_left < shapes[idx].area {
             continue;
         }
 
@@ -164,7 +176,12 @@ fn can_fit_all_presents(shapes: &[Shape], cur_field: &[Vec<bool>], shape_reqs: &
 
                         new_shape_reqs[idx] -= 1;
 
-                        if can_fit_all_presents(shapes, &new_field, &new_shape_reqs) {
+                        if can_fit_all_presents(
+                            shapes,
+                            &new_field,
+                            &new_shape_reqs,
+                            area_left - shapes[idx].area,
+                        ) {
                             return true;
                         }
                     }
@@ -183,7 +200,19 @@ fn solve_1() -> usize {
         .par_iter()
         .filter(|field| {
             let grid = vec![vec![false; field.width]; field.height];
-            can_fit_all_presents(&shapes, &grid, &field.shape_reqs)
+            let start = Instant::now();
+            let result = can_fit_all_presents(
+                &shapes,
+                &grid,
+                &field.shape_reqs,
+                field.height * field.width,
+            );
+            println!(
+                "{:?} completed in {}mcs",
+                field,
+                start.elapsed().as_micros()
+            );
+            result
         })
         .count()
 }
